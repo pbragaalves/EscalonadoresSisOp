@@ -1,7 +1,6 @@
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
-import java.util.Comparator;
 import java.util.PriorityQueue;
 import java.util.LinkedList;
 
@@ -17,7 +16,7 @@ public class Escalonadores {
 	
 	static class Process implements Comparable<Process>{
 		int arrival=0, execution = 0, priority = 0, id;
-		float waiting=-1;
+		boolean started = false;
 		public Process(int id, int a, int e, int p){
 			arrival = a;
 			execution = e;
@@ -36,12 +35,22 @@ public class Escalonadores {
 		}
 		
 		public Process clone(){
-			return new Process(id, arrival, execution, priority);
+			Process p = new Process(id, arrival, execution, priority);
+			p.started = started;
+			return p;
 		}
+	}
+	
+	static LinkedList<Process> reverseList(LinkedList<Process> list){
+		LinkedList<Process> result = new LinkedList<Process>();
+			while(!list.isEmpty())
+				result.addFirst(list.poll());
+		return result;
 	}
 	
 	static boolean readFile(String path){
 		BufferedReader br;
+		pList.clear();
 		try{
 	    	FileReader arq = new FileReader(path);
 	    	br = new BufferedReader(arq);
@@ -70,24 +79,32 @@ public class Escalonadores {
 	
 	static void getProcessToQueue(int pc, LinkedList<Process> pList){
 		if(pList.isEmpty()) return;
+		LinkedList<Process> aux = new LinkedList<Process>();
 		while(!pList.isEmpty() && pList.peek().arrival <= pc){
 			Process p = pList.poll();
 			queue.add(p.clone());
-			robinList.add(p.clone());
+			aux.addFirst(p.clone());
 		}
+		for(Process p: aux)
+			robinList.addFirst(p.clone());
 	}
 	
-	static void getProcessToQueuePP(int pc, LinkedList<Process> pList){
+	static void getProcessToQueuePP(int pc, LinkedList<Process> pList, Process curr){
 		if(pList.isEmpty()) return;
 		while(!pList.isEmpty() && pList.peek().arrival <= pc){
 			Process p = pList.poll();
-			pushProcessToQueue(p);
-			
-			
+			pushProcessToQueue(p.clone(), curr);
 		}
 	}
 	
-	static void pushProcessToQueue(Process p){
+	static void pushProcessToQueue(Process p, Process curr){
+		if(robinQueue.isEmpty()||curr==null){ returnProcessToQueue(p.clone());
+		}else if(p.priority<=curr.priority){
+			 robinQueue.addFirst(p.clone());
+		}else robinQueue.add(p.clone()); 
+	}
+	
+	static void returnProcessToQueue(Process p){
 		if(robinQueue.isEmpty()) robinQueue.add(p.clone());
 		else
 			for(int i=0; i<robinQueue.size(); i++){
@@ -104,19 +121,24 @@ public class Escalonadores {
 	
 	static String SJF(){
 		StringBuffer sb = new StringBuffer();
-		int pc = 0;
+		int pc = 1;
 		float turnaround=0, waiting=0;
 		queue.clear();
+		Process curr = null;
 		LinkedList<Process> list = new LinkedList<Process>(pList);
 		while(!list.isEmpty()||!queue.isEmpty()){
 			getProcessToQueue(pc, list);
 			if(queue.isEmpty()){
+				curr = null;
 				sb.append("-");
 				pc++;
 			}else{
-				sb.append("TC");
-				pc+=2;
+				if(curr!=null){
+					sb.append("TC");
+					pc+=2;
+				}
 				Process p = queue.poll();
+				curr = p;
 				waiting+= pc-p.arrival;
 				while(p.execution!=0){
 					sb.append(p.id);
@@ -133,105 +155,114 @@ public class Escalonadores {
 	
 	static String RoundRobin(){
 		StringBuffer sb = new StringBuffer();
-		int pc = 0, ts, start;
+		int pc = 1, ts;
 		float turnaround=0, waiting=0, response =0;
 		robinList.clear();
 		Process curr = null;
 		LinkedList<Process> list = new LinkedList<Process>(pList);
+		//list = reverseList(list);
 		while(!list.isEmpty()||!robinList.isEmpty()){
 			getProcessToQueue(pc, list);
 			if(robinList.isEmpty()){
+				curr = null;
 				sb.append("-");
 				pc++;
 			}else{
 				Process p = robinList.poll();
 				ts = timeslice;
 				if(!p.equals(curr)){
-					sb.append("TC");
-					pc+=2;
+					if(curr!=null){
+						sb.append("TC");
+						pc+=2;
+					}
 					curr = p;
-					if(p.waiting==-1){
-						p.waiting = pc-p.arrival;
-						response += p.waiting;
-						waiting += p.waiting;
-					}else{
-						waiting += pc-p.waiting;
+					if(!p.started){
+						p.started = true;
+						response+=pc-p.arrival;
 					}
 				}
 				
 				while(ts>0 && p.execution>0){
 					sb.append(p.id);
 					p.execution--;
+				    waiting--;
 					ts--;
 					pc++;
 				}
 				
 				if(p.execution!=0){
-					p.waiting = pc;
+					getProcessToQueue(pc, list);
 					robinList.add(p);
 				}else{
 					turnaround+=pc-p.arrival;
+					waiting+=pc-p.arrival;
 				}
 			}
 		}
-		sb.append("\nTempo médio de espera: ").append(waiting/n_process);
 		sb.append("\nTempo médio de resposta: ").append(response/n_process);
+		sb.append("\nTempo médio de espera: ").append(waiting/n_process);
 		sb.append("\nTempo médio de turnaround: ").append(turnaround/n_process);
 		return sb.toString();
 	}
 	
 	static String RoundRobinPP(){
 		StringBuffer sb = new StringBuffer();
-		int pc = 0, ts;
+		int pc = 1, ts;
 		float turnaround=0, waiting=0, response =0;
 		robinQueue.clear();
 		LinkedList<Process> list = new LinkedList<Process>(pList);
 		Process p = null, curr=null;
 		while(!list.isEmpty()||!robinQueue.isEmpty()){
-			getProcessToQueuePP(pc, list);
+			getProcessToQueuePP(pc, list, curr);
 			if(robinQueue.isEmpty()){
+				curr = null;
 				sb.append("-");
 				pc++;
 			}else{
 				p = robinQueue.poll();
-				if(curr == null || p.id!=curr.id){
-					sb.append("TC");
-					pc+=2;
+				if(curr==null || p.id!=curr.id){
+					if(curr!=null){
+						sb.append("TC");
+						pc+=2;
+					}
 					curr = p;
-					if(p.waiting==-1){
-						p.waiting = pc-p.arrival;
-						response += p.waiting;
-						waiting += p.waiting;
-					}else{
-						waiting += pc-p.waiting;
+					if(!p.started){
+						p.started = true;
+						response+=pc-p.arrival;
 					}
 				}
+				
 				ts = timeslice;
 				while(ts>0 && p.execution>0){
 					sb.append(p.id);
 					p.execution--;
+					waiting--;
 					ts--;
 					pc++;
 				}
+				getProcessToQueuePP(pc, list, curr);
 				if(p.execution!=0){
-					p.waiting = pc;
-					pushProcessToQueue(p);
+					returnProcessToQueue(p);
 				}else{
 					turnaround+=pc-p.arrival;
+					waiting+=pc-p.arrival;
 				}
 			}
 		}
-		sb.append("\nTempo médio de espera: ").append(waiting/n_process);
 		sb.append("\nTempo médio de resposta: ").append(response/n_process);
+		sb.append("\nTempo médio de espera: ").append(waiting/n_process);
 		sb.append("\nTempo médio de turnaround: ").append(turnaround/n_process);
 		return sb.toString();
 	}
 	
 	public static void main(String[] args) {
-		readFile("trab-so1-teste2.txt");
-		System.out.println(SJF());
-		System.out.println(RoundRobin());
-		System.out.println(RoundRobinPP());
+		for(int i=1; i<5; i++){
+			readFile("trab-so1-teste"+i+".txt");
+			System.out.println("\nArquivo "+i);
+			System.out.println("---------------------------------");
+			System.out.println(SJF());
+			System.out.println(RoundRobin());
+			System.out.println(RoundRobinPP());
+		}
 	}
-
 }
