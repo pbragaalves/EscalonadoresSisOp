@@ -5,7 +5,7 @@ import java.util.PriorityQueue;
 import java.util.LinkedList;
 
 
-public class Escalonadores {
+public class ScalingAlgorithms {
 	static LinkedList<Process> pList = new LinkedList<Process>();
 	static LinkedList<Process> robinList = new LinkedList<Process>();
 	static PriorityQueue<Process> queue = new PriorityQueue<Process>();
