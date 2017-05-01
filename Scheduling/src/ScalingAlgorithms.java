@@ -9,7 +9,6 @@ public class ScalingAlgorithms {
 	static LinkedList<Process> pList = new LinkedList<Process>();
 	static LinkedList<Process> robinList = new LinkedList<Process>();
 	static PriorityQueue<Process> queue = new PriorityQueue<Process>();
-
 	static LinkedList<Process> robinQueue = new LinkedList<Process>();
 	
 	static int timeslice, n_process;
@@ -41,13 +40,7 @@ public class ScalingAlgorithms {
 		}
 	}
 	
-	static LinkedList<Process> reverseList(LinkedList<Process> list){
-		LinkedList<Process> result = new LinkedList<Process>();
-			while(!list.isEmpty())
-				result.addFirst(list.poll());
-		return result;
-	}
-	
+	//read file and store Process objects into list
 	static boolean readFile(String path){
 		BufferedReader br;
 		pList.clear();
@@ -77,6 +70,7 @@ public class ScalingAlgorithms {
 		}
 	}
 	
+	//push processes to execution queue of SJF and Round Robin algorithms, based on PC.
 	static void getProcessToQueue(int pc, LinkedList<Process> pList){
 		if(pList.isEmpty()) return;
 		LinkedList<Process> aux = new LinkedList<Process>();
@@ -89,6 +83,7 @@ public class ScalingAlgorithms {
 			robinList.addFirst(p.clone());
 	}
 	
+	//push processes to execution queue of Round Robin preemptive method, based on pc and current process
 	static void getProcessToQueuePP(int pc, LinkedList<Process> pList, Process curr){
 		if(pList.isEmpty()) return;
 		while(!pList.isEmpty() && pList.peek().arrival <= pc){
@@ -97,6 +92,7 @@ public class ScalingAlgorithms {
 		}
 	}
 	
+	//auxiliar method
 	static void pushProcessToQueue(Process p, Process curr){
 		if(robinQueue.isEmpty()||curr==null){ returnProcessToQueue(p.clone());
 		}else if(p.priority<=curr.priority){
@@ -104,6 +100,7 @@ public class ScalingAlgorithms {
 		}else robinQueue.add(p.clone()); 
 	}
 	
+	//returns processes to queue
 	static void returnProcessToQueue(Process p){
 		if(robinQueue.isEmpty()) robinQueue.add(p.clone());
 		else
@@ -119,6 +116,7 @@ public class ScalingAlgorithms {
 			}
 	}
 	
+	//SJF method
 	static String SJF(){
 		StringBuffer sb = new StringBuffer();
 		int pc = 1;
@@ -153,6 +151,7 @@ public class ScalingAlgorithms {
 		return sb.toString();
 	}
 	
+	//Round Robin method
 	static String RoundRobin(){
 		StringBuffer sb = new StringBuffer();
 		int pc = 1, ts;
@@ -160,7 +159,6 @@ public class ScalingAlgorithms {
 		robinList.clear();
 		Process curr = null;
 		LinkedList<Process> list = new LinkedList<Process>(pList);
-		//list = reverseList(list);
 		while(!list.isEmpty()||!robinList.isEmpty()){
 			getProcessToQueue(pc, list);
 			if(robinList.isEmpty()){
@@ -205,6 +203,7 @@ public class ScalingAlgorithms {
 		return sb.toString();
 	}
 	
+	//preemptive Round Robin method
 	static String RoundRobinPP(){
 		StringBuffer sb = new StringBuffer();
 		int pc = 1, ts;
@@ -256,6 +255,7 @@ public class ScalingAlgorithms {
 	}
 	
 	public static void main(String[] args) {
+		//iteration to execute test files
 		for(int i=1; i<5; i++){
 			readFile("trab-so1-teste"+i+".txt");
 			System.out.println("\nArquivo "+i);
